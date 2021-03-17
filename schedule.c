@@ -5,7 +5,15 @@
 #include <stdlib.h>
 #define CommandSize 1500
 
+int N;
+int Bcount;
+int minB;
+int avgB;
+int minA ;
+int avgA;
+char* ALG;
 struct QNode { 
+
     int key; 
     struct QNode* next; 
 }; 
@@ -70,15 +78,16 @@ void deQueue(struct Queue* q)
 
 
 void processInput(char command []){
-    int N = atoi(strsep(&command, " "));       // NUmber of W threads   1 -- 10
-    int Bcount= atoi(strsep(&command, " "));  //number of bursts that each W thread will generate.
-    int minB = atoi(strsep(&command, " "));  
-    int avgB = atoi(strsep(&command, " "));  
-    int minA = atoi(strsep(&command, " "));  
-    int avgA = atoi(strsep(&command, " "));  
-    char* ALG = command;
+    
+    N = atoi(strsep(&command, " "));       // NUmber of W threads   1 -- 10
+    Bcount= atoi(strsep(&command, " "));  //number of bursts that each W thread will generate.
+    minB = atoi(strsep(&command, " "));  
+    avgB = atoi(strsep(&command, " "));  
+    minA = atoi(strsep(&command, " "));  
+    avgA = atoi(strsep(&command, " "));  
+    ALG = command;
 
-    printf("%d - %d -%d -%d -%d- %d - %s ",N,Bcount,minB,avgB,minA,avgA,ALG);
+    
     
 }
 
@@ -107,6 +116,7 @@ int main(int argc, char const *argv[])
         // Replace line endings with string terminator.
         commands[strcspn(commands, "\n\r")] = '\0';      
         processInput(commands);
+        printf("N :%d - Bcount : %d - minB: %d - avgB: %d -minA: %d- avgA: %d -ALG:  %s ",N,Bcount,minB,avgB,minA,avgA,ALG);
     }
  
     return 0;
