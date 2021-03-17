@@ -69,12 +69,6 @@ void deQueue(struct Queue* q)
 
 
 
-
-
-
-
-
-
 void processInput(char command []){
     int N = atoi(strsep(&command, " "));       // NUmber of W threads   1 -- 10
     int Bcount= atoi(strsep(&command, " "));  //number of bursts that each W thread will generate.
