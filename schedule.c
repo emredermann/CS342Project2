@@ -6,97 +6,89 @@
 #define CommandSize 1500
 
 struct QNode { 
-    int data; 
-    QNode* next; 
-    QNode(int d) 
-    { 
-        data = d; 
-        next = NULL; 
-    } 
+    int key; 
+    struct QNode* next; 
 }; 
   
 struct Queue { 
-    QNode *front, *rear; 
-    Queue() 
-    { 
-        front = rear = NULL; 
-    } 
-void enQueue(int x) 
-    { 
-  
-        // Create a new LL node 
-        QNode* temp = new QNode(x); 
-  
-        // If queue is empty, then 
-        // new node is front and rear both 
-        if (rear == NULL) { 
-            front = rear = temp; 
-            return; 
-        } 
-  
-        // Add the new node at 
-        // the end of queue and change rear 
-        rear->next = temp; 
-        rear = temp; 
-    } 
-  
-    // Function to remove 
-    // a key from given queue q 
-    void deQueue() 
-    { 
-        // If queue is empty, return NULL. 
-        if (front == NULL) 
-            return; 
-  
-        // Store previous front and 
-        // move front one node ahead 
-        QNode* temp = front; 
-        front = front->next; 
-  
-        // If front becomes NULL, then 
-        // change rear also as NULL 
-        if (front == NULL) 
-            rear = NULL; 
-  
-        delete (temp); 
-    } 
+    struct QNode *front, *rear; 
 }; 
+struct QNode* newNode(int k) 
+{ 
+    struct QNode* temp = (struct QNode*)malloc(sizeof(struct QNode)); 
+    temp->key = k; 
+    temp->next = NULL; 
+    return temp; 
+} 
+  
+// A utility function to create an empty queue 
+struct Queue* createQueue() 
+{ 
+    struct Queue* q = (struct Queue*)malloc(sizeof(struct Queue)); 
+    q->front = q->rear = NULL; 
+    return q; 
+} 
+  
+// The function to add a key k to q 
+void enQueue(struct Queue* q, int k) 
+{ 
+    // Create a new LL node 
+    struct QNode* temp = newNode(k); 
+  
+    // If queue is empty, then new node is front and rear both 
+    if (q->rear == NULL) { 
+        q->front = q->rear = temp; 
+        return; 
+    } 
+  
+    // Add the new node at the end of queue and change rear 
+    q->rear->next = temp; 
+    q->rear = temp; 
+} 
+  
+// Function to remove a key from given queue q 
+void deQueue(struct Queue* q) 
+{ 
+    // If queue is empty, return NULL. 
+    if (q->front == NULL) 
+        return; 
+  
+    // Store previous front and move front one node ahead 
+    struct QNode* temp = q->front; 
+  
+    q->front = q->front->next; 
+  
+    // If front becomes NULL, then change rear also as NULL 
+    if (q->front == NULL) 
+        q->rear = NULL; 
+  
+    free(temp); 
+} 
 
-void processInput(char commands []){
-   int N;       // NUmber of W threads   1 -- 10
-   int Bcount;  //number of bursts that each W thread will generate.
-   int minB;  
-   int avgB;  
-   int minA;  
-   int avgA;  
-   char* ALG[10];
-    
-    int mode;
-    int N;
-    
-    if(commandDecider(commands,argv1,argv2) == 1){      
 
-            getMode(&N,&mode);
-            
-            if (mode == 1){
-             
-                runMultipleCommandNormalMode(argv1,argv2);
 
-            } 
-            if (mode == 2){
-                printf("N is :%d\n",N);
-                runMultipleCommandTappedMode(argv1,argv2,N);
 
-            }  
 
-        }else{
 
-            runSingleCommand(argv1);
-    }
+
+
+
+
+
+void processInput(char command []){
+    int N = atoi(strsep(&command, " "));       // NUmber of W threads   1 -- 10
+    int Bcount= atoi(strsep(&command, " "));  //number of bursts that each W thread will generate.
+    int minB = atoi(strsep(&command, " "));  
+    int avgB = atoi(strsep(&command, " "));  
+    int minA = atoi(strsep(&command, " "));  
+    int avgA = atoi(strsep(&command, " "));  
+    char* ALG = command;
+
+    printf("%d - %d -%d -%d -%d- %d - %s ",N,Bcount,minB,avgB,minA,avgA,ALG);
     
 }
 
-
+/*
 void parseCommand(char command[], char* argv1[]) {
     int i =0;
     while(i < 11){  
@@ -110,20 +102,7 @@ void parseCommand(char command[], char* argv1[]) {
         i += 1;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+*/
 
 int main(int argc, char const *argv[])
 {
