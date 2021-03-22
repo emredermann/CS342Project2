@@ -3,28 +3,34 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <stdlib.h>
+#include <pthread.h>
 #define CommandSize 1500
 
-int N;
-int Bcount;
-int minB;
-int avgB;
-int minA ;
-int avgA;
-char* ALG;
-struct QNode { 
 
-    int key; 
+    struct timeval tv;
+
+
+struct QNode { 
+    time_t curtime;
+    int pid;    //thread index
+    int bid;    // burst index
+    int length; 
+    int wallClock;  
     struct QNode* next; 
 }; 
   
+
 struct Queue { 
     struct QNode *front, *rear; 
 }; 
-struct QNode* newNode(int k) 
+
+struct QNode* newNode(int pid,int bid,int length,int wallClock) 
 { 
     struct QNode* temp = (struct QNode*)malloc(sizeof(struct QNode)); 
-    temp->key = k; 
+    temp->pid = pid;
+    temp->bid = bid;
+    temp->length = length;
+    temp->wallClock = wallClock;
     temp->next = NULL; 
     return temp; 
 } 
@@ -38,10 +44,10 @@ struct Queue* createQueue()
 } 
   
 // The function to add a key k to q 
-void enQueue(struct Queue* q, int k) 
+void enQueue(struct Queue* q, int pid,int bid,int length,int wallClock) 
 { 
     // Create a new LL node 
-    struct QNode* temp = newNode(k); 
+    struct QNode* temp = newNode(pid,bid, length, wallClock); 
   
     // If queue is empty, then new node is front and rear both 
     if (q->rear == NULL) { 
@@ -73,50 +79,90 @@ void deQueue(struct Queue* q)
     free(temp); 
 } 
 
+void processInputFile(char command[],int *N,int *minB,int *avgB,int *minA,int *avgA,char  *ALG){
 
-
-
-
-void processInput(char command []){
-    
-    N = atoi(strsep(&command, " "));       // NUmber of W threads   1 -- 10
-    Bcount= atoi(strsep(&command, " "));  //number of bursts that each W thread will generate.
-    minB = atoi(strsep(&command, " "));  
-    avgB = atoi(strsep(&command, " "));  
-    minA = atoi(strsep(&command, " "));  
-    avgA = atoi(strsep(&command, " "));  
-    ALG = command;
-
-    
-    
+    N = command[0];
+    ALG = command[1];
+    FILE* filepointer =fopen(command[3],"r");
+    char buffer[*N];
+    while (fgets(buffer, N, filepointer)) {
+        buffer[strcspn(buffer, "\n\r")] = '\0'; // remove the newline at the end
+        char command[strlen(buffer)];
+        strcpy(command, buffer);
+        parseFile(command,*minB, *avgB,*minA, *avgA);
+    }
+    fclose(filepointer);
 }
 
-/*
-void parseCommand(char command[], char* argv1[]) {
-    int i =0;
-    while(i < 11){  
-        argv1[i] = strsep(&command, " ");
-        if (argv1[i] == NULL) {
+void parseFile(char command[],int *minB,int *avgB,int *minA,int *avgA){
+    for (int i = 0; i < 4; i++) {
+        command[i] = strsep(&command, " ");
+
+        if (command[i] == NULL) {
             break;
         }
-        if (strlen(argv1[i]) == 0){
-            i -= 1;
-            }
-        i += 1;
     }
+    minB = command[0];
+    avgB = command[1];
+    minA = command[2];
+    avgA = command[3];
 }
-*/
+
+void processInputManual(char command [],int *N,int *minB,int *avgB,int *minA,int *avgA,char ** ALG){
+    
+        *N = atoi(strsep(&command, " "));       // NUmber of W threads   1 -- 10
+     //   Bcount= atoi(strsep(&command, " "));  //number of bursts that each W thread will generate.
+        *minB = atoi(strsep(&command, " "));  
+        *avgB = atoi(strsep(&command, " "));  
+        *minA = atoi(strsep(&command, " "));  
+        *avgA = atoi(strsep(&command, " "));  
+       *ALG = command;
+}
+
+void PthreadScheduler(int N,int minB,int avgB,int minA,int avgA,char * ALG){
+    struct Queue * runquque;
+    runquque = createQueue();
+    pthread_t tid[N];
+    int bid,length,wallClock;
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    for (int i = 0; i < N; i++)
+    {
+        // Empty threads created.
+        pthread_create(&tid[i],&attr,NULL,NULL);
+        enQueue(runquque,tid[i],bid,length,wallClock);
+    }
+    
+
+}
 
 int main(int argc, char const *argv[])
 {
     char commands[CommandSize];
     while(1){
-        printf("\nschedule$: ");
+
+        int N;
+        int Bcount;
+        int minB;
+        int avgB;
+        int minA ;
+        int avgA;
+        char * ALG;
+        printf("\nschedule: ");
         fgets(commands, CommandSize, stdin);
+     
         // Replace line endings with string terminator.
         commands[strcspn(commands, "\n\r")] = '\0';      
-        processInput(commands);
-        printf("N :%d - Bcount : %d - minB: %d - avgB: %d -minA: %d- avgA: %d -ALG:  %s ",N,Bcount,minB,avgB,minA,avgA,ALG);
+        if (1)
+        {
+         processInputManual(commands,&N,&minB,&avgB,&minA,&avgA,&ALG);
+        }
+ 
+       printf("N is : %d  minB is : %d  avgB is : %d  minA is : %d  avgA is : %d  ALG is : %s",N,minB,avgB,minA,avgA,ALG);
+    
+    PthreadScheduler(commands,N,minB,avgB,minA,avgA,ALG);
+    
+    
     }
  
     return 0;
