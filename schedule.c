@@ -160,7 +160,7 @@ int main(int argc, char const *argv[])
  
        printf("N is : %d  minB is : %d  avgB is : %d  minA is : %d  avgA is : %d  ALG is : %s",N,minB,avgB,minA,avgA,ALG);
     
-    PthreadScheduler(commands,N,minB,avgB,minA,avgA,ALG);
+    PthreadScheduler(N,minB,avgB,minA,avgA,ALG);
     
     
     }
