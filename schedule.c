@@ -4,11 +4,14 @@
 #include <sys/wait.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <sys/time.h>
 #define CommandSize 1500
 
 
-    struct timeval tv;
-
+struct timeval tv;
+pthread_mutex_t mutexBuffer;
+int bid;
+struct Queue * runquque;
 
 struct QNode { 
     time_t curtime;
@@ -61,7 +64,7 @@ void enQueue(struct Queue* q, int pid,int bid,int length,int wallClock)
 } 
   
 // Function to remove a key from given queue q 
-void deQueue(struct Queue* q) 
+void deQueue_FCFS(struct Queue* q) 
 { 
     // If queue is empty, return NULL. 
     if (q->front == NULL) 
@@ -78,6 +81,10 @@ void deQueue(struct Queue* q)
   
     free(temp); 
 } 
+void deQueue_SJF(struct Queue* q){}
+void deQueue_PRIO(struct Queue* q){}
+void deQueue_VRUNTIME(struct Queue* q){}
+
 
 void processInputFile(char command[],int *N,int *minB,int *avgB,int *minA,int *avgA,char  *ALG){
 
@@ -119,21 +126,62 @@ void processInputManual(char command [],int *N,int *minB,int *avgB,int *minA,int
        *ALG = command;
 }
 
+
+void * producer(void * pid){
+
+    printf("Cpu burst in the thread.");
+    int length,wallClock;
+
+    //Created burst
+    int tmp = rand() % 100;
+
+    //Length each burst is random and exponentially distributed with mean avgB.
+    length = ;
+    struct timeval current_time;
+    gettimeofday(&current_time,NULL);
+    wallClock = (int) current_time.tv_usec;
+
+    pthread_mutex_lock(&mutexBuffer);
+    // Enqueue cpu burst.
+    enQueue(runquque, pid,bid,length,wallClock);
+    bid++;
+    pthread_mutex_unlock(&mutexBuffer);
+    pthread_exit(0);
+
+}
 void PthreadScheduler(int N,int minB,int avgB,int minA,int avgA,char * ALG){
-    struct Queue * runquque;
+    
+    pthread_mutex_init(&mutexBuffer,NULL);
+    bid = 0;
     runquque = createQueue();
     pthread_t tid[N];
-    int bid,length,wallClock;
+ 
     pthread_attr_t attr;
     pthread_attr_init(&attr);
+    //N threads created
+
+    // Each thread will generate a sequence of cpu burst one-byone and add them to rq.
+    // Length f each burst id random and exponentially distributed with mean avgB
+    // The inter-arrival time between two consecutive bursts is also random and exponential distributed with mean avgA
+    // W thread will sleep between two burst generations
+    // Burst created must be added to queue.
+    
     for (int i = 0; i < N; i++)
     {
         // Empty threads created.
-        pthread_create(&tid[i],&attr,NULL,NULL);
-        enQueue(runquque,tid[i],bid,length,wallClock);
+        pthread_create(&tid[i],&attr,producer,i);
+        
+    }
+    for (int i = 0; i < N; i++)
+    {
+        pthread_join(tid[i],NULL);
     }
     
+    
 
+
+
+    pthread_mutex_destroy(&mutexBuffer);
 }
 
 int main(int argc, char const *argv[])
