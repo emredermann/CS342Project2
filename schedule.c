@@ -12,7 +12,8 @@ struct timeval tv;
 pthread_mutex_t mutexBuffer;
 int bid;
 struct Queue * runquque;
-
+int Bcount;
+int avgB,avgA;
 struct QNode { 
     time_t curtime;
     int pid;    //thread index
@@ -64,7 +65,7 @@ void enQueue(struct Queue* q, int pid,int bid,int length,int wallClock)
 } 
   
 // Function to remove a key from given queue q 
-void deQueue_FCFS(struct Queue* q) 
+struct QNode * deQueue_FCFS(struct Queue* q) 
 { 
     // If queue is empty, return NULL. 
     if (q->front == NULL) 
@@ -78,7 +79,7 @@ void deQueue_FCFS(struct Queue* q)
     // If front becomes NULL, then change rear also as NULL 
     if (q->front == NULL) 
         q->rear = NULL; 
-  
+    return temp;
     free(temp); 
 } 
 void deQueue_SJF(struct Queue* q){}
@@ -101,6 +102,7 @@ void processInputFile(char command[],int *N,int *minB,int *avgB,int *minA,int *a
     fclose(filepointer);
 }
 
+
 void parseFile(char command[],int *minB,int *avgB,int *minA,int *avgA){
     for (int i = 0; i < 4; i++) {
         command[i] = strsep(&command, " ");
@@ -115,46 +117,78 @@ void parseFile(char command[],int *minB,int *avgB,int *minA,int *avgA){
     avgA = command[3];
 }
 
-void processInputManual(char command [],int *N,int *minB,int *avgB,int *minA,int *avgA,char ** ALG){
+
+void processInputManual(char command [],int *N,int *Bcount,int *minB,int *avgB,int *minA,int *avgA,char ** ALG){
     
         *N = atoi(strsep(&command, " "));       // NUmber of W threads   1 -- 10
-     //   Bcount= atoi(strsep(&command, " "));  //number of bursts that each W thread will generate.
+        *Bcount= atoi(strsep(&command, " "));  //number of bursts that each W thread will generate.
         *minB = atoi(strsep(&command, " "));  
         *avgB = atoi(strsep(&command, " "));  
         *minA = atoi(strsep(&command, " "));  
         *avgA = atoi(strsep(&command, " "));  
-       *ALG = command;
+        *ALG = command;
 }
 
 
 void * producer(void * pid){
 
     printf("Cpu burst in the thread.");
-    int length,wallClock;
 
-    //Created burst
-    int tmp = rand() % 100;
+    //Bcount the amount of bursts each thread generated.
+    for (int i = 0; i < Bcount; i++)
+    {
+        int length,wallClock;
 
-    //Length each burst is random and exponentially distributed with mean avgB.
-    length = ;
-    struct timeval current_time;
-    gettimeofday(&current_time,NULL);
-    wallClock = (int) current_time.tv_usec;
+        //Created burst
+        int tmp = rand() % 100;
 
-    pthread_mutex_lock(&mutexBuffer);
-    // Enqueue cpu burst.
-    enQueue(runquque, pid,bid,length,wallClock);
-    bid++;
-    pthread_mutex_unlock(&mutexBuffer);
+        //Length each burst is random and exponentially distributed with mean avgB.
+        do{
+          length = (1/avgB) * exp(-1/avgB * rand()); 
+        }while(length >=100);
+        
+        struct timeval current_time;
+        gettimeofday(&current_time,NULL);
+        wallClock = (int) current_time.tv_usec;
+
+        pthread_mutex_lock(&mutexBuffer);
+        // Enqueue cpu burst.
+        enQueue(runquque, pid,bid,length,wallClock);
+        bid++;
+        pthread_mutex_unlock(&mutexBuffer);
+    }
     pthread_exit(0);
 
 }
+
+
+// for s_thread which is going to consume the W threads productions.
+void * consumer(void * ALG){
+    char *p = ALG;
+
+    // Test print to chech whether ALG is passed.
+    printf("ALG inside consumer is %s",ALG);
+    /*
+    if(strcmp(ALG , "FCFS") == 0){}
+    if(strcmp(ALG , "SJF") == 0){}
+    if(strcmp(ALG , "PRIO") == 0){}
+    if(strcmp(ALG , "VRUNTIME") == 0){}
+*/
+     pthread_mutex_lock(&mutexBuffer);
+    // Enqueue cpu burst.
+    struct QNode * Tmp =  deQueue_FCFS(runquque);     
+    pthread_mutex_unlock(&mutexBuffer);
+    printf("pid is :%d bid is :%d length is(ms):%d wallClock is :%d \n",Tmp->pid,Tmp->bid,Tmp->length,Tmp->wallClock);
+    
+}
+
+
 void PthreadScheduler(int N,int minB,int avgB,int minA,int avgA,char * ALG){
     
     pthread_mutex_init(&mutexBuffer,NULL);
     bid = 0;
     runquque = createQueue();
-    pthread_t tid[N];
+    pthread_t tid[N+1];
  
     pthread_attr_t attr;
     pthread_attr_init(&attr);
@@ -169,18 +203,22 @@ void PthreadScheduler(int N,int minB,int avgB,int minA,int avgA,char * ALG){
     for (int i = 0; i < N; i++)
     {
         // Empty threads created.
-        pthread_create(&tid[i],&attr,producer,i);
-        
+        if (pthread_create(&tid[i],&attr,producer,i)){
+            perror("Failed to create W thread");
+        }
+    }
+
+    if(pthread_create(&tid[N],&attr,consumer,ALG))
+    {
+        perror("Failed to create S thread");
     }
     for (int i = 0; i < N; i++)
     {
-        pthread_join(tid[i],NULL);
+        if(pthread_join(tid[i],NULL)){
+            perror("Failed to create join");
+        }
     }
     
-    
-
-
-
     pthread_mutex_destroy(&mutexBuffer);
 }
 
@@ -190,11 +228,11 @@ int main(int argc, char const *argv[])
     while(1){
 
         int N;
-        int Bcount;
+  //      int Bcount;
         int minB;
-        int avgB;
+   //     int avgB;
         int minA ;
-        int avgA;
+ //       int avgA;
         char * ALG;
         printf("\nschedule: ");
         fgets(commands, CommandSize, stdin);
@@ -203,10 +241,10 @@ int main(int argc, char const *argv[])
         commands[strcspn(commands, "\n\r")] = '\0';      
         if (1)
         {
-         processInputManual(commands,&N,&minB,&avgB,&minA,&avgA,&ALG);
+         processInputManual(commands,&N,&Bcount,&minB,&avgB,&minA,&avgA,&ALG);
         }
  
-       printf("N is : %d  minB is : %d  avgB is : %d  minA is : %d  avgA is : %d  ALG is : %s",N,minB,avgB,minA,avgA,ALG);
+       printf("N is : %d Bcount is :%d minB is : %d  avgB is : %d  minA is : %d  avgA is : %d  ALG is : %s",N,Bcount,minB,avgB,minA,avgA,ALG);
     
     PthreadScheduler(N,minB,avgB,minA,avgA,ALG);
     
