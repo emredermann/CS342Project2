@@ -79,11 +79,7 @@ bool isEmpty(struct Queue* q){
 } 
 // Function to remove a key from given queue q 
 struct QNode * deQueue_FCFS(struct Queue* q) 
-{ 
-    // If queue is empty, return NULL. 
-    if (q->front == NULL) 
-        return; 
-  
+{   
     // Store previous front and move front one node ahead 
     struct QNode* temp = q->front; 
   
@@ -93,11 +89,55 @@ struct QNode * deQueue_FCFS(struct Queue* q)
     if (q->front == NULL) 
         q->rear = NULL; 
     return temp;
-    
 } 
-void deQueue_SJF(struct Queue* q){}
-void deQueue_PRIO(struct Queue* q){}
-void deQueue_VRUNTIME(struct Queue* q){}
+
+struct QNode * deQueue_SJF(struct Queue* q){
+    struct QNode* temp = q->front; 
+  
+    q->front = q->front->next; 
+  
+    // If front becomes NULL, then change rear also as NULL 
+    if (q->front == NULL) 
+        q->rear = NULL; 
+    return temp;
+}
+
+struct QNode * deQueue_PRIO(struct Queue* q){
+    struct QNode* temp = q->front; 
+    struct QNode* before_target;
+
+    // Finds the less prio and sets the before_target to the appropriote index.
+  while(temp != NULL){
+      if(temp->pid > temp->next->pid){
+          before_target->next = temp->next;
+      }
+      temp=temp->next;
+  }
+  if(before_target == NULL){
+
+    free(before_target);
+    q->front = q->front->next; 
+  
+    // If front becomes NULL, then change rear also as NULL 
+
+    }else{
+        temp = before_target->next;
+        before_target->next=before_target->next;        
+    }
+        if (q->front == NULL) 
+            q->rear = NULL; 
+        return temp;
+    }
+
+struct QNode * deQueue_VRUNTIME(struct Queue* q){struct QNode* temp = q->front; 
+  //while(temp.)
+    q->front = q->front->next; 
+  
+    // If front becomes NULL, then change rear also as NULL 
+    if (q->front == NULL) 
+        q->rear = NULL; 
+    return temp;}
+
 
 void processInputFile(char command[],int *N,int *minB,int *avgB,int *minA,int *avgA,char  *ALG){
 
@@ -178,7 +218,7 @@ while(1){
         while(avgA_checker < minA){avgA_checker = exponential_dist(avgA);}
         sleep(avgA_checker);
     }
-    
+
     pthread_cond_signal(&condition);
 
     pthread_exit(0);
@@ -190,22 +230,22 @@ while(1){
 void * consumer(void * param){
 
   while(1){
-    /*
-    if(strcmp(ALG , "FCFS") == 0){}
-    if(strcmp(ALG , "SJF") == 0){}
-    if(strcmp(ALG , "PRIO") == 0){}
-    if(strcmp(ALG , "VRUNTIME") == 0){}
-*/  
+      
     // If the queue is empty then waits
     
     pthread_mutex_lock(&mutexBuffer);   
     while(isEmpty(runquque)){
         printf("\n Queue is empty. \n");
-        pthread_cond_wait(&condition, &mutexBuffer);
-       
+        pthread_cond_wait(&condition, &mutexBuffer);  
     }    
+
+            struct QNode * Tmp ;   
+    if(strcmp(ALG , "FCFS") == 0){Tmp =  deQueue_FCFS(runquque);}
+    if(strcmp(ALG , "SJF") == 0){Tmp =  deQueue_SJF(runquque);}
+    if(strcmp(ALG , "PRIO") == 0){Tmp =  deQueue_PRIO(runquque);}
+    if(strcmp(ALG , "VRUNTIME") == 0){Tmp =  deQueue_VRUNTIME(runquque);}
+
     // Enqueue cpu burst.
-    struct QNode * Tmp =  deQueue_FCFS(runquque);
     sleep(Tmp->length/100);     
     pthread_mutex_unlock(&mutexBuffer);
     printf("\n(consumer thread) thread index is :%d burst index is :%d length is(ms):%d wallClock is :%d \n",Tmp->pid,Tmp->bid,Tmp->length,Tmp->wallClock);
