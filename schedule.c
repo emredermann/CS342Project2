@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <sys/time.h>
+#include <math.h>
+
 #define CommandSize 1500
 
 
@@ -14,6 +16,10 @@ int bid;
 struct Queue * runquque;
 int Bcount;
 int avgB,avgA;
+int N;
+int minB;
+int minA ;
+char * ALG;
 struct QNode { 
     time_t curtime;
     int pid;    //thread index
@@ -80,7 +86,7 @@ struct QNode * deQueue_FCFS(struct Queue* q)
     if (q->front == NULL) 
         q->rear = NULL; 
     return temp;
-    free(temp); 
+    
 } 
 void deQueue_SJF(struct Queue* q){}
 void deQueue_PRIO(struct Queue* q){}
@@ -131,9 +137,7 @@ void processInputManual(char command [],int *N,int *Bcount,int *minB,int *avgB,i
 
 
 void * producer(void * pid){
-
-    printf("Cpu burst in the thread.");
-
+while(1){
     //Bcount the amount of bursts each thread generated.
     for (int i = 0; i < Bcount; i++)
     {
@@ -143,9 +147,10 @@ void * producer(void * pid){
         int tmp = rand() % 100;
 
         //Length each burst is random and exponentially distributed with mean avgB.
+        //(1/avgB)  * pow(-1/avgB * rand())
         do{
-          length = (1/avgB) * exp(-1/avgB * rand()); 
-        }while(length >=100);
+          length = 150; 
+        }while(length <100);
         
         struct timeval current_time;
         gettimeofday(&current_time,NULL);
@@ -154,32 +159,35 @@ void * producer(void * pid){
         pthread_mutex_lock(&mutexBuffer);
         // Enqueue cpu burst.
         enQueue(runquque, pid,bid,length,wallClock);
+        printf("\n(producer thread) thread index is :%d burst index is :%d length is(ms):%d wallClock is :%d \n",pid,bid,length,wallClock);
         bid++;
         pthread_mutex_unlock(&mutexBuffer);
+        
     }
     pthread_exit(0);
-
+}
 }
 
 
 // for s_thread which is going to consume the W threads productions.
-void * consumer(void * ALG){
-    char *p = ALG;
+void * consumer(void * param){
 
-    // Test print to chech whether ALG is passed.
-    printf("ALG inside consumer is %s",ALG);
+  while(1){
     /*
     if(strcmp(ALG , "FCFS") == 0){}
     if(strcmp(ALG , "SJF") == 0){}
     if(strcmp(ALG , "PRIO") == 0){}
     if(strcmp(ALG , "VRUNTIME") == 0){}
 */
-     pthread_mutex_lock(&mutexBuffer);
+    pthread_mutex_lock(&mutexBuffer);
     // Enqueue cpu burst.
     struct QNode * Tmp =  deQueue_FCFS(runquque);     
     pthread_mutex_unlock(&mutexBuffer);
-    printf("pid is :%d bid is :%d length is(ms):%d wallClock is :%d \n",Tmp->pid,Tmp->bid,Tmp->length,Tmp->wallClock);
-    
+
+    printf("\n(consumer thread) thread index is :%d burst index is :%d length is(ms):%d wallClock is :%d \n",Tmp->pid,Tmp->bid,Tmp->length,Tmp->wallClock);
+    sleep(1);
+    }
+    pthread_exit(0);
 }
 
 
@@ -208,11 +216,11 @@ void PthreadScheduler(int N,int minB,int avgB,int minA,int avgA,char * ALG){
         }
     }
 
-    if(pthread_create(&tid[N],&attr,consumer,ALG))
+    if(pthread_create(&tid[N],&attr,consumer,NULL))
     {
         perror("Failed to create S thread");
     }
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < N+1; i++)
     {
         if(pthread_join(tid[i],NULL)){
             perror("Failed to create join");
@@ -227,13 +235,7 @@ int main(int argc, char const *argv[])
     char commands[CommandSize];
     while(1){
 
-        int N;
-  //      int Bcount;
-        int minB;
-   //     int avgB;
-        int minA ;
- //       int avgA;
-        char * ALG;
+
         printf("\nschedule: ");
         fgets(commands, CommandSize, stdin);
      
@@ -244,10 +246,9 @@ int main(int argc, char const *argv[])
          processInputManual(commands,&N,&Bcount,&minB,&avgB,&minA,&avgA,&ALG);
         }
  
-       printf("N is : %d Bcount is :%d minB is : %d  avgB is : %d  minA is : %d  avgA is : %d  ALG is : %s",N,Bcount,minB,avgB,minA,avgA,ALG);
+       //printf("N is : %d Bcount is :%d minB is : %d  avgB is : %d  minA is : %d  avgA is : %d  ALG is : %s",N,Bcount,minB,avgB,minA,avgA,ALG);
     
     PthreadScheduler(N,minB,avgB,minA,avgA,ALG);
-    
     
     }
  
