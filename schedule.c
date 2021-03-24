@@ -6,12 +6,15 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include <math.h>
+#include <stdbool.h>
 
 #define CommandSize 1500
 
 
 struct timeval tv;
 pthread_mutex_t mutexBuffer;
+pthread_cond_t condition;
+
 int bid;
 struct Queue * runquque;
 int Bcount;
@@ -70,6 +73,9 @@ void enQueue(struct Queue* q, int pid,int bid,int length,int wallClock)
     q->rear = temp; 
 } 
   
+bool isEmpty(struct Queue* q){
+    return q->front == NULL;
+} 
 // Function to remove a key from given queue q 
 struct QNode * deQueue_FCFS(struct Queue* q) 
 { 
@@ -160,6 +166,7 @@ while(1){
         // Enqueue cpu burst.
         enQueue(runquque, pid,bid,length,wallClock);
         printf("\n(producer thread) thread index is :%d burst index is :%d length is(ms):%d wallClock is :%d \n",pid,bid,length,wallClock);
+        pthread_cond_signal(&condition);
         bid++;
         pthread_mutex_unlock(&mutexBuffer);
         
@@ -178,14 +185,20 @@ void * consumer(void * param){
     if(strcmp(ALG , "SJF") == 0){}
     if(strcmp(ALG , "PRIO") == 0){}
     if(strcmp(ALG , "VRUNTIME") == 0){}
-*/
-    pthread_mutex_lock(&mutexBuffer);
+*/  
+    // If the queue is empty then waits
+    
+    pthread_mutex_lock(&mutexBuffer);   
+    while(isEmpty(runquque)){
+        pthread_cond_wait(&condition, &mutexBuffer);
+    }    
     // Enqueue cpu burst.
-    struct QNode * Tmp =  deQueue_FCFS(runquque);     
+    struct QNode * Tmp =  deQueue_FCFS(runquque);
+    sleep(Tmp->length/100);     
     pthread_mutex_unlock(&mutexBuffer);
-
     printf("\n(consumer thread) thread index is :%d burst index is :%d length is(ms):%d wallClock is :%d \n",Tmp->pid,Tmp->bid,Tmp->length,Tmp->wallClock);
-    sleep(1);
+        
+       
     }
     pthread_exit(0);
 }
@@ -194,6 +207,7 @@ void * consumer(void * param){
 void PthreadScheduler(int N,int minB,int avgB,int minA,int avgA,char * ALG){
     
     pthread_mutex_init(&mutexBuffer,NULL);
+    pthread_cond_init(&condition,NULL);
     bid = 0;
     runquque = createQueue();
     pthread_t tid[N+1];
@@ -215,7 +229,7 @@ void PthreadScheduler(int N,int minB,int avgB,int minA,int avgA,char * ALG){
             perror("Failed to create W thread");
         }
     }
-
+    // S thread created
     if(pthread_create(&tid[N],&attr,consumer,NULL))
     {
         perror("Failed to create S thread");
