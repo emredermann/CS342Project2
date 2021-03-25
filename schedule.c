@@ -30,6 +30,7 @@ struct QNode {
     int bid;    // burst index
     int length; 
     int wallClock;  
+    int avgA_time;
     struct QNode* next; 
 }; 
   
@@ -38,7 +39,7 @@ struct Queue {
     struct QNode *front, *rear; 
 }; 
 
-struct QNode* newNode(int pid,int bid,int length,int wallClock) 
+struct QNode* newNode(int pid,int bid,int length,int wallClock,int avgA_time) 
 { 
     struct QNode* temp = (struct QNode*)malloc(sizeof(struct QNode)); 
     temp->pid = pid;
@@ -46,6 +47,7 @@ struct QNode* newNode(int pid,int bid,int length,int wallClock)
     temp->length = length;
     temp->wallClock = wallClock;
     temp->next = NULL; 
+    temp->avgA_time = avgA_time;
     return temp; 
 } 
   
@@ -58,10 +60,10 @@ struct Queue* createQueue()
 } 
   
 // The function to add a key k to q 
-void enQueue(struct Queue* q, int pid,int bid,int length,int wallClock) 
+void enQueue(struct Queue* q, int pid,int bid,int length,int wallClock,int avgA_time) 
 { 
     // Create a new LL node 
-    struct QNode* temp = newNode(pid,bid, length, wallClock); 
+    struct QNode* temp = newNode(pid,bid, length, wallClock,avgA_time); 
   
     // If queue is empty, then new node is front and rear both 
     if (q->rear == NULL) { 
@@ -220,15 +222,18 @@ void processInputManual(char command [],int *N,int *Bcount,int *minB,int *avgB,i
 }
 
 //exponenetial distribution formulunu implement et ve zamanı kur.
-double exponential_dist(int a){
+float exponential_dist(int a){
+     srand((unsigned)time(NULL));
     double u;
-    srand((unsigned)time(NULL));
+    double lambda;
+    lambda = (float)1 / a;
+  // printf("lambda is : %f",lambda);
   //  printf("rand is %d",rand());
     u = rand() / (RAND_MAX +1.0);
   //  (1/a) * pow(e,-(1/a)*rand())
-   // return -log(1-u) / (1/a);
+    return -log(1-u) / lambda;
    //log(u) * (1/a)
-    return  1600;
+   // return  lambda * exp(-lambda * rand());;
 }
 
 void * producer(void * pid){
@@ -247,32 +252,36 @@ while(1){
         //Length each burst is random and exponentially distributed with mean avgB.
         //)
         
-          length = (int)(exponential_dist(avgB) / 100); 
-        
+          length = (int)(exponential_dist(avgB)); 
+           
         while(length < minB ){
+           
             length = (int)exponential_dist(avgB); 
-       //     printf("length is :%f \n",exponential_dist(avgB));
+          //  printf("length is :%f \n",exponential_dist(avgB));
            //  printf("length is %d",length);
+            //printf("Length for avgb is : %d \n",length);
         }
-       length = length + i;
+     //  length = length + i;
+        
         struct timeval current_time;
         gettimeofday(&current_time,NULL);
         wallClock = (int) current_time.tv_usec;
 
         pthread_mutex_lock(&mutexBuffer);
         // Enqueue cpu burst.
-        enQueue(runquque, pid,bid,length,wallClock);
+        int avgA_time = (int)exponential_dist(avgA);
+        
+        while(avgA_time < minA){  avgA_time = avgA_time = (int)exponential_dist(avgA); }
+
+        enQueue(runquque, pid,bid,length,wallClock,avgA_time);
         
         pthread_mutex_unlock(&mutexBuffer);
-        printf("\n(producer thread) thread index is :%d burst index is :%d length is(ms):%d wallClock is :%d \n",pid,bid,length,wallClock);
+        printf("\n(producer thread) thread index is :%d burst index is :%d length is(ms):%d wallClock is :%d, avgA time: %d \n",pid,bid,length,wallClock,avgA_time);
         bid++;
         // Waiting time between consective threads.
         
-        int avgA_checker = exponential_dist(avgA);
-         avgA_checker = avgA_checker% minA;
-        while(avgA_checker < minA){ avgA_checker = avgA_checker +1000; }
       //  printf("sleep time is %d \n",avgA_checker/1000);
-        sleep(avgA_checker/1000); 
+        sleep(avgA_time/1000); 
         pthread_cond_signal(&condition);
     }
 
@@ -309,7 +318,7 @@ void * consumer(void * param){
     // Enqueue cpu burst.
     sleep(Tmp->length/1000);     
     pthread_mutex_unlock(&mutexBuffer);
-    printf("\n********************************\n(consumer thread) thread index is :%d burst index is :%d length is(ms):%d wallClock is :%d \n********************************\n",Tmp->pid,Tmp->bid,Tmp->length,Tmp->wallClock);
+    printf("\n********************************\n(consumer thread) thread index is :%d burst index is :%d length is(ms):%d wallClock is :%d avgA time : %d\n********************************\n",Tmp->pid,Tmp->bid,Tmp->length,Tmp->wallClock,Tmp->avgA_time);
         
     }
     printf("consumer exitted.");
