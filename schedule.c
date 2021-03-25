@@ -179,22 +179,22 @@ struct QNode * deQueue_VRUNTIME(struct Queue* q){
         return target;
 }
 
-void processInputFile(char command[],int *N,int *minB,int *avgB,int *minA,int *avgA,char  *ALG){
+void processInputFile(char command[]){
 
     N = command[0];
     ALG = command[1];
     FILE* filepointer =fopen(command[3],"r");
-    char buffer[*N];
+    char buffer[N];
     while (fgets(buffer, N, filepointer)) {
         buffer[strcspn(buffer, "\n\r")] = '\0'; // remove the newline at the end
         char command[strlen(buffer)];
         strcpy(command, buffer);
-        parseFile(command,*minB, *avgB,*minA, *avgA);
+        parseFile(command);
     }
     fclose(filepointer);
 }
 
-void parseFile(char command[],int *minB,int *avgB,int *minA,int *avgA){
+void parseFile(char command[]){
     for (int i = 0; i < 4; i++) {
         command[i] = strsep(&command, " ");
 
@@ -208,15 +208,21 @@ void parseFile(char command[],int *minB,int *avgB,int *minA,int *avgA){
     avgA = command[3];
 }
 
-void processInputManual(char command [],int *N,int *Bcount,int *minB,int *avgB,int *minA,int *avgA,char ** ALG){
-    
-        *N = atoi(strsep(&command, " "));       // NUmber of W threads   1 -- 10
-        *Bcount= atoi(strsep(&command, " "));  //number of bursts that each W thread will generate.
-        *minB = atoi(strsep(&command, " "));  
-        *avgB = atoi(strsep(&command, " "));  
-        *minA = atoi(strsep(&command, " "));  
-        *avgA = atoi(strsep(&command, " "));  
-        *ALG = command;
+bool processInputManual(char command []){
+        printf("Inside ınput manual");
+        char * tmp;
+        N = atoi(strsep(&command, " "));       // NUmber of W threads   1 -- 10
+        tmp = strsep(&command, " ");
+        
+        Bcount= atoi(strsep(&command, " "));  //number of bursts that each W thread will generate.
+
+        minB = atoi(strsep(&command, " "));  
+        avgB = atoi(strsep(&command, " ")); 
+        minA = atoi(strsep(&command, " "));  
+        avgA = atoi(strsep(&command, " "));  
+        ALG = command;
+        return true;
+
 }
 
 //exponenetial distribution formulunu implement et ve zamanı kur.
@@ -317,7 +323,7 @@ void * consumer(void * param){
 }
 
 
-void PthreadScheduler(int N,int minB,int avgB,int minA,int avgA,char * ALG){
+void PthreadScheduler(){
     
     pthread_mutex_init(&mutexBuffer,NULL);
     pthread_cond_init(&condition,NULL);
@@ -357,25 +363,43 @@ void PthreadScheduler(int N,int minB,int avgB,int minA,int avgA,char * ALG){
     pthread_mutex_destroy(&mutexBuffer);
 }
 
+
+void parseCommand(char command[], char* argv1[]) {
+    for (int i = 0; i < 7; i++) {
+        
+        argv1[i] = strsep(&command, " ");
+        printf(("argv i -- %s -- added",argv1[i]));
+        if (argv1[i] == NULL) {
+            break;
+        }
+        i -= (strlen(argv1[i]) == 0);
+    }
+}
+
+
 int main(int argc, char const *argv[])
 {
     char commands[CommandSize];
+    char * argv1[10];
+   // char TmpCommands[CommandSize];
     while(1){
-
 
         printf("\nschedule: ");
         fgets(commands, CommandSize, stdin);
-     
+
         // Replace line endings with string terminator.
         commands[strcspn(commands, "\n\r")] = '\0';      
-        if (1)
-        {
-         processInputManual(commands,&N,&Bcount,&minB,&avgB,&minA,&avgA,&ALG);
-        }
+       // strcpy(TmpCommands,commands);
+        parseCommand(commands,&argv1);
+        
+         if(processInputManual(commands) == false){
+             processInputFile(commands);
+         }
+      
  
        //printf("N is : %d Bcount is :%d minB is : %d  avgB is : %d  minA is : %d  avgA is : %d  ALG is : %s",N,Bcount,minB,avgB,minA,avgA,ALG);
     
-    PthreadScheduler(N,minB,avgB,minA,avgA,ALG);
+    PthreadScheduler();
     
     }
  
