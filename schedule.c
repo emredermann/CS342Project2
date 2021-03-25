@@ -8,7 +8,7 @@
 #include <math.h>
 #include <stdbool.h>
 #include <time.h>
-
+#include <complex.h>
 #define CommandSize 1500
 
 
@@ -149,15 +149,35 @@ struct QNode * deQueue_PRIO(struct Queue* q){
         return target;
     }
 
-struct QNode * deQueue_VRUNTIME(struct Queue* q){struct QNode* temp = q->front; 
-  //while(temp.)
+int virtualRuntime(int threadId){
+    return (int)threadId * (0.7+(0.3*I));
+}
+struct QNode * deQueue_VRUNTIME(struct Queue* q){
+    
+    struct QNode* temp = q->front; 
+    struct QNode* target = q->front;
+
+    // Finds the less thread id and sets the before_target to the appropriote index.
+  while(temp->next!= NULL){
+      if(virtualRuntime(target->pid) > virtualRuntime(temp->next->pid)){
+          target = temp;
+      }
+      temp = temp->next;
+  }
+  if(target == q->front){
     q->front = q->front->next; 
   
     // If front becomes NULL, then change rear also as NULL 
-    if (q->front == NULL) 
-        q->rear = NULL; 
-    return temp;}
 
+    }else{
+        temp=q->front;
+        while(temp->next!=target){temp = temp->next;} 
+        temp->next = target->next;
+    }
+        if (q->front == NULL) 
+            q->rear = NULL; 
+        return target;
+}
 
 void processInputFile(char command[],int *N,int *minB,int *avgB,int *minA,int *avgA,char  *ALG){
 
@@ -231,7 +251,7 @@ while(1){
         
         while(length < minB ){
             length = (int)exponential_dist(avgB); 
-            printf("length is :%f \n",exponential_dist(avgB));
+       //     printf("length is :%f \n",exponential_dist(avgB));
            //  printf("length is %d",length);
         }
        length = length + i;
@@ -251,11 +271,12 @@ while(1){
         int avgA_checker = exponential_dist(avgA);
          avgA_checker = avgA_checker% minA;
         while(avgA_checker < minA){ avgA_checker = avgA_checker +1000; }
-        printf("sleep time is %d \n",avgA_checker/1000);
+      //  printf("sleep time is %d \n",avgA_checker/1000);
         sleep(avgA_checker/1000); 
+        pthread_cond_signal(&condition);
     }
 
-    pthread_cond_signal(&condition);
+    //pthread_cond_signal(&condition);
 
     pthread_exit(0);
 }
