@@ -92,41 +92,61 @@ struct QNode * deQueue_FCFS(struct Queue* q)
 } 
 
 struct QNode * deQueue_SJF(struct Queue* q){
-    struct QNode* temp = q->front; 
-  
+    struct QNode * current;
+    struct QNode * target;
+    
+    current = q->front;
+    target = q->front;
+
+    int target_tid = q->front->pid;
+    while(current->next != NULL){
+      if(target-> length > current->next->length && current->pid == target_tid){
+          target = current->next;
+      }
+      current=current->next;
+  }
+  // if the target initial node of the queue
+if(target == q->front){
     q->front = q->front->next; 
-  
+ 
+  }
+  // iterate the cur node to find the previous node of the target node to deallocate it.
+  else{
+      current = q->front;
+      while(current->next!=target){
+      current = current->next;}
+    current->next = target->next;
+  }
     // If front becomes NULL, then change rear also as NULL 
     if (q->front == NULL) 
         q->rear = NULL; 
-    return temp;
+    return target;
 }
 
 struct QNode * deQueue_PRIO(struct Queue* q){
     struct QNode* temp = q->front; 
-    struct QNode* before_target;
+    struct QNode* target = q->front;
 
-    // Finds the less prio and sets the before_target to the appropriote index.
-  while(temp != NULL){
-      if(temp->pid > temp->next->pid){
-          before_target->next = temp->next;
+    // Finds the less thread id and sets the before_target to the appropriote index.
+  while(temp->next!= NULL){
+      if(target->pid > temp->next->pid){
+          target = temp;
       }
-      temp=temp->next;
+      temp = temp->next;
   }
-  if(before_target == NULL){
-
-    free(before_target);
+  if(target == q->front){
     q->front = q->front->next; 
   
     // If front becomes NULL, then change rear also as NULL 
 
     }else{
-        temp = before_target->next;
-        before_target->next=before_target->next;        
+        temp=q->front;
+        while(temp->next!=target){temp = temp->next;} 
+        temp->next = target->next;
     }
         if (q->front == NULL) 
             q->rear = NULL; 
-        return temp;
+        return target;
     }
 
 struct QNode * deQueue_VRUNTIME(struct Queue* q){struct QNode* temp = q->front; 
@@ -179,44 +199,60 @@ void processInputManual(char command [],int *N,int *Bcount,int *minB,int *avgB,i
         *ALG = command;
 }
 
-
-float exponential_dist(int a){
-    int u ;
-     u = rand()% 500;
-    return u;
-   // return  -log(1-u) / (1/a);
+//exponenetial distribution formulunu implement et ve zamanı kur.
+double exponential_dist(int a){
+    double u;
+    srand((unsigned)time(NULL));
+  //  printf("rand is %d",rand());
+    u = rand() / (RAND_MAX +1.0);
+  //  (1/a) * pow(e,-(1/a)*rand())
+   // return -log(1-u) / (1/a);
+   //log(u) * (1/a)
+    return  1600;
 }
 
 void * producer(void * pid){
 while(1){
     //Bcount the amount of bursts each thread generated.
+   int bid = 0;
     for (int i = 0; i < Bcount; i++)
     {
         int length,wallClock;
-        printf("\nBcount is : %d \n",Bcount);
-        printf("\nBurst counter %d \n",i);
+     //   printf("\nBcount is : %d \n",Bcount);
+      //  printf("\nBurst counter %d \n",i);
 
         //Created burst
         int tmp = random() % 100;
 
         //Length each burst is random and exponentially distributed with mean avgB.
         //)
-        do{
-          length = (int)exponential_dist(avgB); 
-        }while(length < minB );
         
+          length = (int)(exponential_dist(avgB) / 100); 
+        
+        while(length < minB ){
+            length = (int)exponential_dist(avgB); 
+            printf("length is :%f \n",exponential_dist(avgB));
+           //  printf("length is %d",length);
+        }
+       length = length + i;
         struct timeval current_time;
         gettimeofday(&current_time,NULL);
         wallClock = (int) current_time.tv_usec;
 
         pthread_mutex_lock(&mutexBuffer);
         // Enqueue cpu burst.
-        enQueue(runquque, pid,i,length,wallClock);
-        printf("\n(producer thread) thread index is :%d burst index is :%d length is(ms):%d wallClock is :%d \n",pid,bid,length,wallClock);
+        enQueue(runquque, pid,bid,length,wallClock);
+        
         pthread_mutex_unlock(&mutexBuffer);
+        printf("\n(producer thread) thread index is :%d burst index is :%d length is(ms):%d wallClock is :%d \n",pid,bid,length,wallClock);
+        bid++;
+        // Waiting time between consective threads.
+        
         int avgA_checker = exponential_dist(avgA);
-        while(avgA_checker < minA){avgA_checker = exponential_dist(avgA);}
-        sleep(avgA_checker);
+         avgA_checker = avgA_checker% minA;
+        while(avgA_checker < minA){ avgA_checker = avgA_checker +1000; }
+        printf("sleep time is %d \n",avgA_checker/1000);
+        sleep(avgA_checker/1000); 
     }
 
     pthread_cond_signal(&condition);
@@ -228,30 +264,34 @@ while(1){
 
 // for s_thread which is going to consume the W threads productions.
 void * consumer(void * param){
-
+    /*
+    printf("Waiting cont signal in consumer");
+  pthread_cond_wait(&condition, &mutexBuffer);
+  printf("Get the continue signal");  
+  */
   while(1){
       
     // If the queue is empty then waits
     
     pthread_mutex_lock(&mutexBuffer);   
-    while(isEmpty(runquque)){
+    if(isEmpty(runquque)){
         printf("\n Queue is empty. \n");
         pthread_cond_wait(&condition, &mutexBuffer);  
     }    
 
-            struct QNode * Tmp ;   
+    struct QNode * Tmp ;   
     if(strcmp(ALG , "FCFS") == 0){Tmp =  deQueue_FCFS(runquque);}
-    if(strcmp(ALG , "SJF") == 0){Tmp =  deQueue_SJF(runquque);}
-    if(strcmp(ALG , "PRIO") == 0){Tmp =  deQueue_PRIO(runquque);}
-    if(strcmp(ALG , "VRUNTIME") == 0){Tmp =  deQueue_VRUNTIME(runquque);}
+    if(strcmp(ALG , "SJF") == 0){printf("Inside SJF");Tmp =  deQueue_SJF(runquque);}
+    if(strcmp(ALG , "PRIO") == 0){printf("Inside PRIO"); Tmp =  deQueue_PRIO(runquque);}
+    if(strcmp(ALG , "VRUNTIME") == 0){printf("Inside VRUNTIME"); Tmp =  deQueue_VRUNTIME(runquque);}
 
     // Enqueue cpu burst.
-    sleep(Tmp->length/100);     
+    sleep(Tmp->length/1000);     
     pthread_mutex_unlock(&mutexBuffer);
-    printf("\n(consumer thread) thread index is :%d burst index is :%d length is(ms):%d wallClock is :%d \n",Tmp->pid,Tmp->bid,Tmp->length,Tmp->wallClock);
+    printf("\n********************************\n(consumer thread) thread index is :%d burst index is :%d length is(ms):%d wallClock is :%d \n********************************\n",Tmp->pid,Tmp->bid,Tmp->length,Tmp->wallClock);
         
-       
     }
+    printf("consumer exitted.");
     pthread_exit(0);
 }
 
