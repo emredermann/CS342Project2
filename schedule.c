@@ -151,9 +151,10 @@ struct QNode * deQueue_PRIO(struct Queue* q){
         return target;
     }
 
-int virtualRuntime(int threadId){
-    return (int)threadId * (0.7+(0.3*I));
+int virtualRuntime(int threadId,int length){
+    return (int)length * (0.7+(0.3*threadId));
 }
+
 struct QNode * deQueue_VRUNTIME(struct Queue* q){
     
     struct QNode* temp = q->front; 
@@ -161,7 +162,7 @@ struct QNode * deQueue_VRUNTIME(struct Queue* q){
 
     // Finds the less thread id and sets the before_target to the appropriote index.
   while(temp->next!= NULL){
-      if(virtualRuntime(target->pid) > virtualRuntime(temp->next->pid)){
+      if(virtualRuntime(target->pid,target->length) > virtualRuntime(temp->next->pid,temp->next->length)){
           target = temp;
       }
       temp = temp->next;
@@ -180,7 +181,7 @@ struct QNode * deQueue_VRUNTIME(struct Queue* q){
             q->rear = NULL; 
         return target;
 }
-
+/*
 void processInputFile(char command[],int *N,int *minB,int *avgB,int *minA,int *avgA,char  *ALG){
 
     N = command[0];
@@ -209,7 +210,7 @@ void parseFile(char command[],int *minB,int *avgB,int *minA,int *avgA){
     minA = command[2];
     avgA = command[3];
 }
-
+*/
 void processInputManual(char command [],int *N,int *Bcount,int *minB,int *avgB,int *minA,int *avgA,char ** ALG){
     
         *N = atoi(strsep(&command, " "));       // NUmber of W threads   1 -- 10
@@ -316,12 +317,11 @@ void * consumer(void * param){
     if(strcmp(ALG , "VRUNTIME") == 0){printf("Inside VRUNTIME"); Tmp =  deQueue_VRUNTIME(runquque);}
 
     // Enqueue cpu burst.
-    sleep(Tmp->length/1000);     
+    sleep(Tmp->length/100);     
     pthread_mutex_unlock(&mutexBuffer);
     printf("\n********************************\n(consumer thread) thread index is :%d burst index is :%d length is(ms):%d wallClock is :%d avgA time : %d\n********************************\n",Tmp->pid,Tmp->bid,Tmp->length,Tmp->wallClock,Tmp->avgA_time);
         
     }
-    printf("consumer exitted.");
     pthread_exit(0);
 }
 
