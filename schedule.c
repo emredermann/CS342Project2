@@ -181,36 +181,6 @@ struct QNode * deQueue_VRUNTIME(struct Queue* q){
             q->rear = NULL; 
         return target;
 }
-/*
-void processInputFile(char command[],int *N,int *minB,int *avgB,int *minA,int *avgA,char  *ALG){
-
-    N = command[0];
-    ALG = command[1];
-    FILE* filepointer =fopen(command[3],"r");
-    char buffer[*N];
-    while (fgets(buffer, N, filepointer)) {
-        buffer[strcspn(buffer, "\n\r")] = '\0'; // remove the newline at the end
-        char command[strlen(buffer)];
-        strcpy(command, buffer);
-        parseFile(command,*minB, *avgB,*minA, *avgA);
-    }
-    fclose(filepointer);
-}
-
-void parseFile(char command[],int *minB,int *avgB,int *minA,int *avgA){
-    for (int i = 0; i < 4; i++) {
-        command[i] = strsep(&command, " ");
-
-        if (command[i] == NULL) {
-            break;
-        }
-    }
-    minB = command[0];
-    avgB = command[1];
-    minA = command[2];
-    avgA = command[3];
-}
-*/
 void processInputManual(char command [],int *N,int *Bcount,int *minB,int *avgB,int *minA,int *avgA,char ** ALG){
     
         *N = atoi(strsep(&command, " "));       // NUmber of W threads   1 -- 10
@@ -228,42 +198,38 @@ float exponential_dist(int a){
     double u;
     double lambda;
     lambda = (float)1 / a;
-  // printf("lambda is : %f",lambda);
-  //  printf("rand is %d",rand());
     u = rand() / (RAND_MAX +1.0);
-  //  (1/a) * pow(e,-(1/a)*rand())
     return -log(1-u) / lambda;
-   //log(u) * (1/a)
-   // return  lambda * exp(-lambda * rand());;
+  
 }
 
 void * producer(void * pid){
+
+    // Random waiting time for each W thread.
+    // For the sake of the experiments the randomized variable limited.
+    sleep(rand() % 5);
 while(1){
     //Bcount the amount of bursts each thread generated.
    int bid = 0;
     for (int i = 0; i < Bcount; i++)
     {
         int length,wallClock;
-     //   printf("\nBcount is : %d \n",Bcount);
-      //  printf("\nBurst counter %d \n",i);
+     
 
         //Created burst
         int tmp = random() % 100;
 
         //Length each burst is random and exponentially distributed with mean avgB.
-        //)
+       
         
-          length = (int)(exponential_dist(avgB)); 
+        length = (int)(exponential_dist(avgB)); 
            
         while(length < minB ){
            
             length = (int)exponential_dist(avgB); 
-          //  printf("length is :%f \n",exponential_dist(avgB));
-           //  printf("length is %d",length);
-            //printf("Length for avgb is : %d \n",length);
-        }
-     //  length = length + i;
         
+        }
+    
         struct timeval current_time;
         gettimeofday(&current_time,NULL);
         wallClock = (int) current_time.tv_usec;
@@ -281,12 +247,12 @@ while(1){
         bid++;
         // Waiting time between consective threads.
         
-      //  printf("sleep time is %d \n",avgA_checker/1000);
+    
         sleep(avgA_time/1000); 
         pthread_cond_signal(&condition);
     }
 
-    //pthread_cond_signal(&condition);
+   
 
     pthread_exit(0);
 }
@@ -295,15 +261,10 @@ while(1){
 
 // for s_thread which is going to consume the W threads productions.
 void * consumer(void * param){
-    /*
-    printf("Waiting cont signal in consumer");
-  pthread_cond_wait(&condition, &mutexBuffer);
-  printf("Get the continue signal");  
-  */
+   
   while(1){
       
     // If the queue is empty then waits
-    
     pthread_mutex_lock(&mutexBuffer);   
     if(isEmpty(runquque)){
         printf("\n Queue is empty. \n");
@@ -381,8 +342,6 @@ int main(int argc, char const *argv[])
         {
          processInputManual(commands,&N,&Bcount,&minB,&avgB,&minA,&avgA,&ALG);
         }
- 
-       //printf("N is : %d Bcount is :%d minB is : %d  avgB is : %d  minA is : %d  avgA is : %d  ALG is : %s",N,Bcount,minB,avgB,minA,avgA,ALG);
     
     PthreadScheduler(N,minB,avgB,minA,avgA,ALG);
     
