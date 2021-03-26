@@ -312,14 +312,14 @@ void * consumer(void * param){
 
     struct QNode * Tmp ;   
     if(strcmp(ALG , "FCFS") == 0){Tmp =  deQueue_FCFS(runquque);}
-    if(strcmp(ALG , "SJF") == 0){printf("Inside SJF");Tmp =  deQueue_SJF(runquque);}
-    if(strcmp(ALG , "PRIO") == 0){printf("Inside PRIO"); Tmp =  deQueue_PRIO(runquque);}
-    if(strcmp(ALG , "VRUNTIME") == 0){printf("Inside VRUNTIME"); Tmp =  deQueue_VRUNTIME(runquque);}
+    if(strcmp(ALG , "SJF") == 0){Tmp =  deQueue_SJF(runquque);}
+    if(strcmp(ALG , "PRIO") == 0){ Tmp =  deQueue_PRIO(runquque);}
+    if(strcmp(ALG , "VRUNTIME") == 0){Tmp =  deQueue_VRUNTIME(runquque);}
 
     // Enqueue cpu burst.
     sleep(Tmp->length/100);     
     pthread_mutex_unlock(&mutexBuffer);
-    printf("\n********************************\n(consumer thread) thread index is :%d burst index is :%d length is(ms):%d wallClock is :%d avgA time : %d\n********************************\n",Tmp->pid,Tmp->bid,Tmp->length,Tmp->wallClock,Tmp->avgA_time);
+    printf("\n**(consumer thread) thread index is :%d burst index is :%d length is(ms):%d wallClock is :%d avgA time : %d\n",Tmp->pid,Tmp->bid,Tmp->length,Tmp->wallClock,Tmp->avgA_time);
         
     }
     pthread_exit(0);
