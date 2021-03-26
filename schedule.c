@@ -182,17 +182,15 @@ struct QNode * deQueue_VRUNTIME(struct Queue* q){
         return target;
 }
 
-void processInputFile(char * fileName,char command[],int *N,char **ALG){
+void processInputFile(char * fileName,char *command){
 
-    
     
      printf("N is : %d ALG is : %s FileName is : %s, FileNamethread id  is : %c",*N,*ALG,fileName,fileName[strlen(fileName)-5]);
     FILE* filepointer =fopen(fileName,"r");
-    char buffer[*N];
+    char buffer[100];
     while (fgets(buffer, N, filepointer)) {
         buffer[strcspn(buffer, "\n\r")] = '\0'; // remove the newline at the end
-        char command[strlen(buffer)];
-        strcpy(command, buffer);
+        strcpy(&command, buffer);
     }
     flag = true;
     fclose(filepointer);
@@ -237,13 +235,13 @@ float exponential_dist(int a){
 
 void * producer(void * pid){
 
-
+    printf("You are here");
     if(flag == true){
 
         
         char * commands;
-        
-        
+        processInputFile("test-3.txt",&commands);
+        printf("Commands is %s",*commands);
 
     }
 
@@ -351,10 +349,6 @@ void PthreadScheduler(){
         if (pthread_create(&tid[i],&attr,producer,i+1)){
             perror("Failed to create W thread");
         }
-        if(Bcount == NULL){
-            if (tid == fileName[strlen(fileName)-5]){
-                
-            }
         
     }
     // S thread created
