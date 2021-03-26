@@ -162,7 +162,7 @@ struct QNode * deQueue_VRUNTIME(struct Queue* q){
 
     // Finds the less thread id and sets the before_target to the appropriote index.
   while(temp->next!= NULL){
-      if(virtualRuntime(target->pid,target->length) > virtualRuntime(temp->next->pid,temp->next->length)){
+      if(virtualRuntime(target->pid,target->wallClock) > virtualRuntime(temp->next->pid,temp->next->wallClock)){
           target = temp;
       }
       temp = temp->next;
