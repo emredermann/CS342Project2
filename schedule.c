@@ -15,12 +15,16 @@
 struct timeval tv;
 pthread_mutex_t mutexBuffer;
 pthread_cond_t condition;
-
+char* fileName;
+char commands[CommandSize];
+bool flag = false;
 int bid;
+int averageWaitingTime;
 struct Queue * runquque;
 int Bcount;
 int avgB,avgA;
 int N;
+
 int minB;
 int minA ;
 char * ALG;
@@ -31,6 +35,7 @@ struct QNode {
     int length; 
     int wallClock;  
     int avgA_time;
+    clock_t local_clock;
     struct QNode* next; 
 }; 
   
@@ -48,6 +53,7 @@ struct QNode* newNode(int pid,int bid,int length,int wallClock,int avgA_time)
     temp->wallClock = wallClock;
     temp->next = NULL; 
     temp->avgA_time = avgA_time;
+    temp->local_clock = clock();
     return temp; 
 } 
   
@@ -181,15 +187,15 @@ struct QNode * deQueue_VRUNTIME(struct Queue* q){
             q->rear = NULL; 
         return target;
 }
-void processInputManual(char command [],int *N,int *Bcount,int *minB,int *avgB,int *minA,int *avgA,char ** ALG){
+void processInputManual(char command []){
     
-        *N = atoi(strsep(&command, " "));       // NUmber of W threads   1 -- 10
-        *Bcount= atoi(strsep(&command, " "));  //number of bursts that each W thread will generate.
-        *minB = atoi(strsep(&command, " "));  
-        *avgB = atoi(strsep(&command, " "));  
-        *minA = atoi(strsep(&command, " "));  
-        *avgA = atoi(strsep(&command, " "));  
-        *ALG = command;
+        N = atoi(strsep(&command, " "));       // NUmber of W threads   1 -- 10
+        Bcount= atoi(strsep(&command, " "));  //number of bursts that each W thread will generate.
+        minB = atoi(strsep(&command, " "));  
+        avgB = atoi(strsep(&command, " "));  
+        minA = atoi(strsep(&command, " "));  
+        avgA = atoi(strsep(&command, " "));  
+        ALG = command;
 }
 
 //exponenetial distribution formulunu implement et ve zamanı kur.
@@ -203,19 +209,51 @@ float exponential_dist(int a){
   
 }
 
+
+
 void * producer(void * pid){
 
     // Random waiting time for each W thread.
     // For the sake of the experiments the randomized variable limited.
     sleep(rand() % 5);
+   
+    if ( flag == true){
+        
+        char* abc[10];
+        char * target ;
+        char * txtAppend= ".txt";
+        char  charpid = (char)pid;
+        /*
+        target = malloc(strlen(fileName)+strlen(txtAppend)+2);
+
+        strcat(target ,fileName);
+        strcat(target,charpid);
+        strcat(target,txtAppend);
+
+
+        FILE* fp = fopen(fileName, "r");
+        char buffer[100];
+        printf("\nStarting execution of the commands in the file.\n");
+        fgets(buffer, 100, fp) ;
+        buffer[strcspn(buffer, "\n\r")] = '\0'; // remove the newline at the end
+        char command[strlen(buffer)];
+        
+        parseCommand(command,abc);
+        fclose(fp);
+        
+        Bcount = abc[0];
+        avgB = abc[2];
+        minA = abc[3];
+        minB = abc[1];
+        avgA = abc[4];
+*/
+    }
 while(1){
     //Bcount the amount of bursts each thread generated.
    int bid = 0;
     for (int i = 0; i < Bcount; i++)
     {
         int length,wallClock;
-     
-
         //Created burst
         int tmp = random() % 100;
 
@@ -253,7 +291,7 @@ while(1){
     }
 
    
-
+   // pthread_cond_signal(&condition);
     pthread_exit(0);
 }
 }
@@ -267,7 +305,9 @@ void * consumer(void * param){
     // If the queue is empty then waits
     pthread_mutex_lock(&mutexBuffer);   
     if(isEmpty(runquque)){
+        printf("Average waiting time of %s algorithm is %d",ALG,(averageWaitingTime / N*Bcount));
         printf("\n Queue is empty. \n");
+        
         pthread_cond_wait(&condition, &mutexBuffer);  
     }    
 
@@ -279,15 +319,20 @@ void * consumer(void * param){
 
     // Enqueue cpu burst.
     sleep(Tmp->length/100);     
+    /*struct timeval current_time;
+    gettimeofday(&current_time,NULL);
+    int accurate_time = (int) current_time.tv_usec;
+   */
+    int accurate_time = ((int)(clock() - Tmp->local_clock) )/ CLOCKS_PER_SEC;
+    averageWaitingTime += accurate_time ;
     pthread_mutex_unlock(&mutexBuffer);
-    printf("\n**(consumer thread) thread index is :%d burst index is :%d length is(ms):%d wallClock is :%d avgA time : %d\n",Tmp->pid,Tmp->bid,Tmp->length,Tmp->wallClock,Tmp->avgA_time);
-        
+    printf("\n**(consumer thread) thread index is :%d burst index is :%d length is(ms):%d wallClock is :%d avgA time : %d waiting time of burst : %d\n",Tmp->pid,Tmp->bid,Tmp->length,Tmp->wallClock,Tmp->avgA_time,accurate_time);     
     }
     pthread_exit(0);
 }
 
 
-void PthreadScheduler(int N,int minB,int avgB,int minA,int avgA,char * ALG){
+void PthreadScheduler(){
     
     pthread_mutex_init(&mutexBuffer,NULL);
     pthread_cond_init(&condition,NULL);
@@ -326,24 +371,47 @@ void PthreadScheduler(int N,int minB,int avgB,int minA,int avgA,char * ALG){
     
     pthread_mutex_destroy(&mutexBuffer);
 }
+int parseCommand(char command[],char * argv1[]) {
+    int command_counter = 0;
+    for (int i = 0; i < 7; i++) {
+       
+        argv1[i] = strsep(&command, " ");
+        command_counter++;
+        if (argv1[i] == NULL) {
+            break;
+        }
+        
+    }
+    return command_counter;
+}
 
 int main(int argc, char const *argv[])
 {
-    char commands[CommandSize];
+    char tmp[CommandSize];
+    averageWaitingTime = 0;
+     char* abc[100];
     while(1){
-
 
         printf("\nschedule: ");
         fgets(commands, CommandSize, stdin);
      
         // Replace line endings with string terminator.
         commands[strcspn(commands, "\n\r")] = '\0';      
-        if (1)
-        {
-         processInputManual(commands,&N,&Bcount,&minB,&avgB,&minA,&avgA,&ALG);
-        }
+      
+        strcpy(tmp,commands);
+        int test = parseCommand(tmp,abc);
+       
+       if( test != 4){
+            processInputManual(commands);
+        }else{
+            N = atoi(abc[0]);
+            ALG = abc[1];
+            fileName = abc[3];
+            flag = true;
+            printf("N is --> %d ALG is  --> %s filename is  --> %s",N,ALG,fileName);
+    }
     
-    PthreadScheduler(N,minB,avgB,minA,avgA,ALG);
+    PthreadScheduler();
     
     }
  
