@@ -184,8 +184,7 @@ struct QNode * deQueue_VRUNTIME(struct Queue* q){
 
 void processInputFile(char * fileName,char *command){
 
-    
-     printf("N is : %d ALG is : %s FileName is : %s, FileNamethread id  is : %c",*N,*ALG,fileName,fileName[strlen(fileName)-5]);
+     printf("N is : %d ALG is : %s FileName is : %s, FileNamethread id  is : %c",N,ALG,fileName,fileName[strlen(fileName)-5]);
     FILE* filepointer =fopen(fileName,"r");
     char buffer[100];
     while (fgets(buffer, N, filepointer)) {
@@ -196,7 +195,7 @@ void processInputFile(char * fileName,char *command){
     fclose(filepointer);
 }
 
-
+// line parser
 void parseFile(char command[],int *minB,int *avgB,int *minA,int *avgA){
     for (int i = 0; i < 4; i++) {
         command[i] = strsep(&command, " ");
@@ -230,18 +229,20 @@ float exponential_dist(int a){
     lambda = (float)1 / a;
     u = rand() / (RAND_MAX +1.0);
     return -log(1-u) / lambda;
-  
 }
 
 void * producer(void * pid){
 
-    printf("You are here");
+    
     if(flag == true){
 
         
         char * commands;
-        processInputFile("test-3.txt",&commands);
+     /*   strcat(fileName, (char)pid);
+        strcat(fileName, ".txt ");
         printf("Commands is %s",*commands);
+       */ processInputFile(fileName,&commands);
+        
 
     }
 
