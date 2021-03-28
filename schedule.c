@@ -168,7 +168,7 @@ struct QNode * deQueue_VRUNTIME(struct Queue* q){
 
     // Finds the less thread id and sets the before_target to the appropriote index.
   while(temp->next!= NULL){
-      if(virtualRuntime(target->pid,target->wallClock) > virtualRuntime(temp->next->pid,temp->next->wallClock)){
+      if(virtualRuntime(target->pid,target->length) > virtualRuntime(temp->next->pid,temp->next->length)){
           target = temp;
       }
       temp = temp->next;
@@ -187,6 +187,7 @@ struct QNode * deQueue_VRUNTIME(struct Queue* q){
             q->rear = NULL; 
         return target;
 }
+//3 10 100 200 1000 1500 FCFS
 void processInputManual(char command []){
     
         N = atoi(strsep(&command, " "));       // NUmber of W threads   1 -- 10
@@ -332,6 +333,7 @@ void * consumer(void * param){
 }
 
 
+//3 15 250 350 1000 1500 FCFS
 void PthreadScheduler(){
     
     pthread_mutex_init(&mutexBuffer,NULL);
